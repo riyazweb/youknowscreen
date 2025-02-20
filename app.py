@@ -86,16 +86,16 @@ class ScreenshotApp:
         self.root.after(100, flash)
 
     def setup_capture_tab(self, parent):
-        # Main container with padding and gradient background
+        # Main container with padding
         main_container = ttk.Frame(parent, padding="20")
         main_container.pack(fill="both", expand=True)
         
-        # Position capture frame with modern styling
+        # Position capture frame
         frame_position = ttk.LabelFrame(main_container, text="📷 Capture Position", 
                                       style='Modern.TLabelframe')
         frame_position.pack(fill="x", pady=(0, 15))
         
-        # Capture button with modern design and hover effect
+        # Capture button
         self.btn_capture = HoverButton(frame_position, text="🎯 Capture Position",
                                    command=self.capture_position,
                                    font=('Segoe UI', 11, 'bold'),
@@ -113,14 +113,14 @@ class ScreenshotApp:
                                     style='Modern.TLabel')
         self.lbl_position.pack(padx=10, pady=5)
         
-        # Lock position checkbox with modern style
+        # Lock position checkbox
         self.lock_var = tk.BooleanVar()
         check_lock = ttk.Checkbutton(frame_position, text="🔒 Lock Position",
                                     variable=self.lock_var,
                                     style='Modern.TCheckbutton')
         check_lock.pack(padx=10, pady=10)
         
-        # Settings frame with modern styling
+        # Settings frame
         frame_settings = ttk.LabelFrame(main_container, text="⚙️ Settings",
                                       style='Modern.TLabelframe')
         frame_settings.pack(fill="x", pady=(0, 15))
@@ -140,7 +140,7 @@ class ScreenshotApp:
                               relief='flat', padx=15, pady=5)
         browse_save.pack(side="right", padx=5)
         
-        # Grid layout for settings with better spacing
+        # Settings grid
         settings_grid = ttk.Frame(frame_settings)
         settings_grid.pack(padx=15, pady=10, fill="x")
         
@@ -148,19 +148,19 @@ class ScreenshotApp:
                  style='Modern.TLabel').grid(row=0, column=0, padx=(0,10), pady=10)
         self.entry_clicks = ttk.Entry(settings_grid, width=12)
         self.entry_clicks.grid(row=0, column=1, padx=10, pady=10)
-        self.entry_clicks.insert(0, "5")
+        self.entry_clicks.insert(0, "29")
         
         ttk.Label(settings_grid, text="Start Index:",
                  style='Modern.TLabel').grid(row=0, column=2, padx=(20,10), pady=10)
         self.entry_start_index = ttk.Entry(settings_grid, width=12)
         self.entry_start_index.grid(row=0, column=3, padx=10, pady=10)
-        self.entry_start_index.insert(0, "1")
+        self.entry_start_index.insert(0, "71")
         
         # Control buttons frame
         buttons_frame = ttk.Frame(main_container)
         buttons_frame.pack(fill="x", pady=15)
         
-        # Start button with modern design and hover effect
+        # Start button
         self.btn_start = HoverButton(buttons_frame, text="▶ START",
                                  bg="red", fg="white",
                                  font=('Segoe UI', 12, 'bold'),
@@ -170,7 +170,7 @@ class ScreenshotApp:
                                  cursor="hand2")
         self.btn_start.pack(side="left", padx=5, expand=True)
         
-        # Stop button with modern design and hover effect
+        # Stop button
         self.btn_stop = HoverButton(buttons_frame, text="⏹ STOP",
                                bg="#32CD32", fg="white",
                                font=('Segoe UI', 12, 'bold'),
@@ -180,12 +180,11 @@ class ScreenshotApp:
                                cursor="hand2")
         self.btn_stop.pack(side="left", padx=5, expand=True)
         
-        # Log area with modern styling
+        # Log area
         log_frame = ttk.LabelFrame(main_container, text="📋 Activity Log",
                                  style='Modern.TLabelframe')
         log_frame.pack(fill="both", expand=True, pady=(5, 0))
         
-        # Modern styled log text area
         self.text_log = tk.Text(log_frame, height=12, 
                                font=('Segoe UI', 9),
                                bg='#fafafa', 
@@ -194,7 +193,6 @@ class ScreenshotApp:
         self.text_log.pack(fill="both", expand=True, padx=5, pady=5)
         self.text_log.insert(tk.END, "📝 Ready to start capturing...\n")
         
-        # Modern scrollbar
         scrollbar = ttk.Scrollbar(self.text_log, orient="vertical",
                                 command=self.text_log.yview)
         scrollbar.pack(side="right", fill="y")
@@ -320,8 +318,10 @@ class ScreenshotApp:
     def log_process(self, message):
         self.process_log.insert(tk.END, message + "\n")
         self.process_log.see(tk.END)
+        self.root.update_idletasks()
 
     def process_images(self):
+        """Process images by cropping and combining them into groups of 10."""
         if not self.selected_folder:
             self.log_process("❌ No folder selected!")
             self.process_btn.config(state="normal")
@@ -331,109 +331,110 @@ class ScreenshotApp:
         self.update_progress(0, "Starting...")
 
         try:
+            # Define directories
             input_dir = self.selected_folder
             crop_dir = os.path.join(input_dir, "crop")
             work_dir = os.path.join(input_dir, "work")
-            
             os.makedirs(crop_dir, exist_ok=True)
             os.makedirs(work_dir, exist_ok=True)
-            
-            self.log_process(f"📁 Created directories:\n- {crop_dir}\n- {work_dir}")
-            
-            # Find and process all PNG images
-            image_files = sorted([f for f in os.listdir(input_dir) 
-                                if f.lower().endswith('.png')])
-            total_images = len(image_files)
-            
-            if total_images == 0:
-                self.log_process("❌ No PNG images found in the selected folder!")
+            self.log_process(f"📁 Using directories:\n- Input: {input_dir}\n- Crop: {crop_dir}\n- Work: {work_dir}")
+
+            # List and sort PNG images numerically
+            image_files = [f for f in os.listdir(input_dir) if f.lower().endswith('.png') and f[:-4].isdigit()]
+            if not image_files:
+                self.log_process("❌ No sequentially numbered PNG images found!")
+                self.update_progress(0, "Processing failed")
                 self.process_btn.config(state="normal")
                 return
-                
-            self.log_process(f"🔍 Found {total_images} images to process")
-            
-            # Crop all images first
+            image_files.sort(key=lambda f: int(f[:-4]))
+            total_images = len(image_files)
+            self.log_process(f"🔍 Found {total_images} images: {', '.join(image_files[:5])}{'...' if total_images > 5 else ''}")
+
+            # Crop images and collect paths
             cropped_images = []
+            self.log_process("\n📷 Cropping images...")
             for i, img_file in enumerate(image_files, 1):
+                number = img_file[:-4]  # Extract number, e.g., '1' from '1.png'
                 input_path = os.path.join(input_dir, img_file)
-                output_path = os.path.join(crop_dir, f"cropped_{img_file}")
-                
-                progress = (i / total_images) * 50
-                self.update_progress(progress, f"Cropping image {i}/{total_images}")
-                
+                output_path = os.path.join(crop_dir, f"c_{number}.png")
                 try:
                     with Image.open(input_path) as img:
                         width, height = img.size
-                        
-                        # Crop coordinates
-                        left = 0
-                        top = 320
-                        right = width - 514
-                        bottom = height - 208
-                        
-                        if bottom <= top or right <= left:
+                        left, top, right, bottom = 0, 320, width - 514, height - 208
+                        if right <= left or bottom <= top:
                             self.log_process(f"⚠️ Skipping {img_file}: Invalid dimensions")
                             continue
-                            
                         cropped_img = img.crop((left, top, right, bottom))
                         cropped_img.save(output_path)
-                        cropped_images.append(output_path)
-                        self.log_process(f"✅ Cropped: {img_file}")
+                        cropped_images.append((int(number), output_path))
+                        self.log_process(f"✅ Cropped: {img_file} -> c_{number}.png")
                 except Exception as e:
-                    self.log_process(f"❌ Error processing {img_file}: {str(e)}")
-            
+                    self.log_process(f"❌ Error cropping {img_file}: {str(e)}")
+                progress = (i / total_images) * 50
+                self.update_progress(progress, f"Cropping image {i}/{total_images}")
+
             if not cropped_images:
                 self.log_process("❌ No images were successfully cropped!")
                 self.update_progress(0, "Processing failed")
                 self.process_btn.config(state="normal")
                 return
-            
-            # Create a single combined image from all cropped images
-            self.log_process(f"\n📚 Creating combined image from {len(cropped_images)} cropped images...")
-            
-            try:
-                # Load all cropped images
-                images = []
-                for crop_path in cropped_images:
-                    try:
-                        img = Image.open(crop_path)
-                        images.append(img)
-                    except Exception as e:
-                        self.log_process(f"❌ Error loading {os.path.basename(crop_path)}: {str(e)}")
-                
-                if not images:
-                    raise Exception("No cropped images could be loaded")
-                
-                # Calculate dimensions for the combined image
-                widths, heights = zip(*(img.size for img in images))
-                max_width = max(widths)
-                total_height = sum(heights)
-                
-                # Create the combined image
-                combined = Image.new('RGB', (max_width, total_height))
-                y_offset = 0
-                
-                # Paste all images
-                for img in images:
-                    combined.paste(img, (0, y_offset))
-                    y_offset += img.height
-                
-                # Save the combined image
-                output_path = os.path.join(work_dir, "combined_all.png")
-                combined.save(output_path)
-                self.log_process(f"✅ Created combined image: combined_all.png")
-                self.update_progress(100, "Processing completed!")
-                
-            except Exception as e:
-                self.log_process(f"❌ Error creating combined image: {str(e)}")
-                self.update_progress(0, "Processing failed")
-            finally:
-                # Clean up
-                for img in images:
-                    img.close()
-                
+
+            # Sort cropped images by number to ensure ascending order
+            cropped_images.sort(key=lambda x: x[0])
+            cropped_paths = [path for _, path in cropped_images]
+
+            # Determine cropped image height (assuming all are the same)
+            with Image.open(cropped_paths[0]) as first_cropped:
+                h_cropped = first_cropped.height
+
+            # Group into chunks of 10 and combine
+            chunk_size = 10
+            number_of_chunks = (len(cropped_paths) + chunk_size - 1) // chunk_size
+            self.log_process(f"\n📚 Combining images into {number_of_chunks} chunks...")
+            for chunk_index in range(number_of_chunks):
+                start = chunk_index * chunk_size
+                end = start + chunk_size
+                chunk = cropped_paths[start:end]
+                chunk_name = f"cb_{chunk_index + 1}.png"
+                self.log_process(f"📚 Creating {chunk_name} from {len(chunk)} images...")
+                try:
+                    # Load images in the chunk
+                    images = []
+                    for crop_path in chunk:
+                        try:
+                            images.append(Image.open(crop_path))
+                        except Exception as e:
+                            self.log_process(f"❌ Error loading {os.path.basename(crop_path)}: {str(e)}")
+                    if not images:
+                        self.log_process(f"⚠️ No images in chunk {chunk_index + 1}, skipping.")
+                        continue
+
+                    # Create combined image
+                    max_width = max(img.width for img in images)
+                    combined_height = chunk_size * h_cropped  # Fixed height for 10 images
+                    combined = Image.new('RGB', (max_width, combined_height), color='white')
+                    y_offset = 0
+                    for img in images:
+                        combined.paste(img, (0, y_offset))
+                        y_offset += h_cropped
+                    output_path = os.path.join(work_dir, chunk_name)
+                    combined.save(output_path)
+                    self.log_process(f"✅ Created combined image: {chunk_name}")
+
+                    # Clean up
+                    for img in images:
+                        img.close()
+
+                    # Update progress (50% to 100% during combining)
+                    progress = 50 + ((chunk_index + 1) / number_of_chunks) * 50
+                    self.update_progress(progress, f"Combining chunk {chunk_index + 1}/{number_of_chunks}")
+                except Exception as e:
+                    self.log_process(f"❌ Error creating {chunk_name}: {str(e)}")
+
+            self.update_progress(100, "Processing completed!")
+            self.log_process("\n✅ Processing completed successfully!")
         except Exception as e:
-            self.log_process(f"\n❌ Error during processing: {str(e)}")
+            self.log_process(f"\n❌ Unexpected error: {str(e)}")
             self.update_progress(0, "Processing failed")
         finally:
             self.process_btn.config(state="normal")
@@ -441,7 +442,6 @@ class ScreenshotApp:
     def thread_process_images(self):
         self.process_btn.config(state="disabled")
         self.log_process("⏳ Starting image processing...")
-        
         t = threading.Thread(target=self.process_images)
         t.daemon = True
         t.start()
@@ -455,6 +455,7 @@ class ScreenshotApp:
     def log_message(self, message):
         self.text_log.insert(tk.END, message + "\n")
         self.text_log.see(tk.END)
+        self.root.update_idletasks()
 
     def capture_position(self):
         self.btn_capture.config(state="disabled")
@@ -502,7 +503,6 @@ class ScreenshotApp:
             self.log_message("❌ Please enter valid numbers for settings!")
             return
 
-        # Disable/enable appropriate controls
         self.btn_start.config(state="disabled")
         self.btn_stop.config(state="normal")
         self.btn_capture.config(state="disabled")
@@ -538,18 +538,15 @@ class ScreenshotApp:
                 
             if self.is_running:
                 self.log_message("✅ Screenshot capture completed!")
-                # Switch to Process tab
-                self.notebook.select(1)  # Select the process tab
-                # Auto-select the save directory for processing
+                self.notebook.select(1)  # Switch to Process tab
                 self.selected_folder = self.save_dir
-                self.folder_label.config(text=self.save_dir)
+                self.folder_label.config(text=os.path.basename(self.save_dir))
                 self.process_btn.config(state="normal")
                 self.log_process(f"📁 Ready to process images from: {self.save_dir}")
                 
         except Exception as e:
             self.log_message(f"❌ Error during capture: {str(e)}")
         finally:
-            # Re-enable controls
             self.is_running = False
             self.btn_start.config(state="normal")
             self.btn_stop.config(state="disabled")
@@ -565,8 +562,8 @@ class ScreenshotApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.title("✨ you know if you know man")
-    root.geometry("850x750")
+    root.title("✨ Screenshot Capture & Process Tool")
+    root.geometry("650x750")
     root.configure(bg='#f8f9fa')
     root.resizable(True, True)
     
