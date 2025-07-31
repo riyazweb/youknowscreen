@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import google.generativeai as genai
 import re
+import keyboard  # NEW: for global hotkey
 
 # --- CONFIG ---
 SAVE_DIR = "screenshots"
@@ -69,14 +70,12 @@ def next_image():
         response_text_widget.delete(1.0, "end")
         response_text_widget.config(state="disabled")
 
-        # Auto-generate if checkbox is ticked
         if auto_generate_var.get():
             generate_response()
 
 def strip_markdown(md_text):
-    # Remove Markdown formatting like **, *, #, etc.
     text = re.sub(r"[*_`#\-]+", "", md_text)
-    text = re.sub(r"\n{2,}", "\n", text)  # Remove extra line gaps
+    text = re.sub(r"\n{2,}", "\n", text)
     return text.strip()
 
 def generate_response():
@@ -114,9 +113,7 @@ def setup_area():
     screenshot_area = get_selection_area()
     messagebox.showinfo("Area Set", f"Screenshot area set to: {screenshot_area}")
 
-# ... [rest of your unchanged code above]
-
-# --- inside root setup ---
+# --- MAIN UI ---
 root = tk.Tk()
 root.title("auto answer")
 root.geometry("400x600")
@@ -143,12 +140,11 @@ response_text_widget = tk.Text(
     wrap="word",
     height=8,
     yscrollcommand=scrollbar.set,
-    font=("Segoe UI Emoji", 10),  # Emoji support
+    font=("Segoe UI Emoji", 10),
     bg="#f0f0f0"
 )
 response_text_widget.pack(side="left", fill="both", expand=True)
 response_text_widget.config(state="disabled")
-
 scrollbar.config(command=response_text_widget.yview)
 
 # Auto-generate Checkbox
@@ -157,22 +153,39 @@ auto_checkbox = tk.Checkbutton(
     root,
     text="✅ Auto Generate after Next",
     variable=auto_generate_var,
-    font=("Segoe UI Emoji", 10)  # Emoji support
+    font=("Segoe UI Emoji", 10)
 )
 auto_checkbox.pack()
 
-# Buttons
+# Buttons Frame (Generate left, Next right)
 btn_frame = tk.Frame(root)
 btn_frame.pack(pady=15)
 
-next_btn = tk.Button(btn_frame, text="➡️ Next", command=next_image, width=15, font=("Segoe UI Emoji", 10))
-next_btn.grid(row=0, column=0, padx=10)
+generate_btn = tk.Button(
+    btn_frame, text="⚡ Generate", command=generate_response,
+    width=15, font=("Segoe UI Emoji", 10)
+)
+generate_btn.grid(row=0, column=0, padx=10)
 
-generate_btn = tk.Button(btn_frame, text="⚡ Generate", command=generate_response, width=15, font=("Segoe UI Emoji", 10))
-generate_btn.grid(row=0, column=1)
+next_btn = tk.Button(
+    btn_frame, text="➡️ Next (Alt+X)", command=next_image,
+    width=15, font=("Segoe UI Emoji", 10)
+)
+next_btn.grid(row=0, column=1)
 
 # Set Screen Area Button
-setup_btn = tk.Button(root, text="📐 SET SCREEN AREA", command=setup_area, font=("Segoe UI Emoji", 10))
+setup_btn = tk.Button(
+    root, text="📐 SET SCREEN AREA", command=setup_area,
+    font=("Segoe UI Emoji", 10)
+)
 setup_btn.pack(pady=10)
 
+# 🔁 GLOBAL HOTKEY LISTENER
+def listen_global_hotkey():
+    keyboard.add_hotkey('alt+x', next_image)
+    keyboard.wait()  # Keep listening forever
+
+threading.Thread(target=listen_global_hotkey, daemon=True).start()
+
+# Launch the UI
 root.mainloop()
