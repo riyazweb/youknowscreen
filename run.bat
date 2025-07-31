@@ -9,7 +9,7 @@ pip install pyautogui
 pip install google-generativeai
 pip install opencv-python
 pip install numpy
-
+pip install keyboard
 echo --------------------------------------
 echo All packages installed successfully!
 echo --------------------------------------
